@@ -66,7 +66,7 @@ jobs:
         run: |
           GNUPGHOME="$(mktemp -d)"
           export GNUPGHOME
-          gpg --batch --keyserver hkps://keyser.ubuntu.com:443 --recv-keys 0048C8B026D4C96F0E589C2F6C859FB14B96A8C5
+          gpg --batch --keyserver hkps://keyserver.ubuntu.com:443 --recv-keys 0048C8B026D4C96F0E589C2F6C859FB14B96A8C5
           curl -sO "https://download.samba.org/pub/rsync/src/rsync-${{ env.RSYNC_VERSION }}.tar.gz"
           curl -sO "https://download.samba.org/pub/rsync/src/rsync-${{ env.RSYNC_VERSION }}.tar.gz.asc"
           gpg --batch --verify "rsync-${{ env.RSYNC_VERSION }}.tar.gz.asc" "rsync-${{ env.RSYNC_VERSION }}.tar.gz"
