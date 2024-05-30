@@ -2,6 +2,8 @@
 name: rsync4aarch64CC
 
 on:
+  schedule:
+    - cron: '7 0 * * 1'
 
   workflow_dispatch:
 
@@ -55,13 +57,7 @@ jobs:
           echo "Latest rsync version: $version"
           echo "RSYNC_VERSION=$version" >> $GITHUB_ENV
 
-      # - name: Prepare gpg
-      #   run: |
-      #     mkdir keys
-      #     GNUPGHOME=./keys
-      #     export GNUPGHOME
-      #     gpg --batch --keyserver keyserver.ubuntu.com --recv-keys 0048C8B026D4C96F0E589C2F6C859FB14B96A8C5
-
+      # The used public key can be found on the official rsync website https://rsync.samba.org/download.html (Wayne Davison key)
       - name: Download source code
         run: |
           GNUPGHOME="$(mktemp -d)"
@@ -86,10 +82,3 @@ jobs:
           file: rsync-${{ env.RSYNC_VERSION }}/rsync
           overwrite: true
           tag: v${{ env.RSYNC_VERSION }}
-
-      # - name: Cleanup
-      #   run: |
-      #     cd ..
-      #     rm -rf "rsync-${{ env.RSYNC_VERSION }}*"
-
-      #     # sudo dpkg --add-architecture arm64
