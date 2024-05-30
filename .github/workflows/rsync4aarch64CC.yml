@@ -44,8 +44,6 @@ jobs:
           deb [arch=arm64] http://ports.ubuntu.com/ ${{ env.UBUNTU_CODENAME }}-backports main restricted multiverse universe
           EOF
 
-      # deb [arch=arm64] http://ports.ubuntu.com/ ${{ env.UBUNTU_CODENAME }}-security main restricted multiverse universe
-
       - name: Install dependencies
         run: |
           sudo apt update
@@ -73,9 +71,9 @@ jobs:
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: rsync-${{ env.RSYNC_VERSION }}/rsync # or just bash
+          file: rsync-${{ env.RSYNC_VERSION }}/rsync
           overwrite: true
-          tag: rsync v${{ env.RSYNC_VERSION }}
+          tag: v${{ env.RSYNC_VERSION }}
 
       # - name: Cleanup
       #   run: |

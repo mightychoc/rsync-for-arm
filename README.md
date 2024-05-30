@@ -1,3 +1,3 @@
-# Bash for ARM64
+# rsync for ARM64
 
-This repo only serves the purpose to statically compile the latest version of bash for aarch64.
+This repo only serves the purpose to statically compile the latest version of rsync for the aarch64 architecture.
