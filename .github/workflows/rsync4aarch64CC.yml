@@ -55,9 +55,17 @@ jobs:
           echo "Latest rsync version: $version"
           echo "RSYNC_VERSION=$version" >> $GITHUB_ENV
 
+      - name: Prepare gpg
+        run: |
+        GNUPGHOME="$(mktemp -d)"
+        export GNUPGHOME
+        gpg --batch --keyserver hkps://keyserver.ubuntu.com:443 --recv-keys 0048C8B026D4C96F0E589C2F6C859FB14B96A8C5
+
       - name: Download source code
         run: |
           curl -sO "https://download.samba.org/pub/rsync/src/rsync-${{ env.RSYNC_VERSION }}.tar.gz"
+          curl -sO "https://download.samba.org/pub/rsync/src/rsync-${{ env.RSYNC_VERSION }}.tar.gz.asc"
+          gpg --batch --verify "rsync-${{ env.RSYNC_VERSION }}.tar.gz.asc" "rsync-${{ env.RSYNC_VERSION }}.tar.gz"
           tar -xzvf "rsync-${{ env.RSYNC_VERSION }}.tar.gz"
 
       - name: Build and compile for aarch64
@@ -81,15 +89,3 @@ jobs:
       #     rm -rf "rsync-${{ env.RSYNC_VERSION }}*"
 
       #     # sudo dpkg --add-architecture arm64
-
-
-   # - name: Print sources
-      #   run: |
-      #     cd /etc/apt/
-      #     echo "Contents of /etc/apt/sources.list"
-      #     cat sources.list
-      #     cd sources.list.d
-      #     echo "Contents of /etc/apt/sources.list.d/azure-cli.sources"
-      #     cat azure-cli.sources
-      #     echo "Contents of /etc/apt/sources.list.d/microsoft-prod.list"
-      #     cat microsoft-prod.list
