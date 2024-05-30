@@ -1,0 +1,97 @@
+
+name: rsync4aarch64CC
+
+on:
+
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  Cross-Compile:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get Ubuntu Version
+        id: ubuntu_version
+        run: |
+          codename=$(lsb_release -cs)
+          echo "UBUNTU_CODENAME=$codename" >> $GITHUB_ENV
+          
+      # This step sets up the /etc/apt/sources.list and /etc/apt/sources.list.d/arm-cross-compile-sources.list files to handle arm64 packages.
+      # We need to do so because rsync requires the libxxhash-dev, libssl-dev, libzstd-dev and liblz4-dev for arm64 to form a complete build.
+      # This concretely means that we add the ports.ubuntu.com sources to our own arm-cross-compile-sources.list file where we can fetch the packages.
+      # Further we need to adapt sources.list to contains [arch=arm64] tags in order for apt to not get confused.
+      - name: Prepare for new architecture
+        run: |
+          echo "UBUNTU_CODENAME is set to ${{ env.UBUNTU_CODENAME }}"
+          sudo dpkg --add-architecture arm64
+          
+          if grep -q '\[arch=amd64\]' /etc/apt/sources.list; then
+            echo "/etc/apt/sources.list already modified. Skipping sed operation..."
+          else
+            sudo sed -i 's/deb/deb [arch=amd64]/g' /etc/apt/sources.list
+          fi
+
+          sudo tee /etc/apt/sources.list.d/arm-cross-compile-sources.list <<EOF
+          deb [arch=arm64] http://ports.ubuntu.com/ ${{ env.UBUNTU_CODENAME }} main restricted
+          deb [arch=arm64] http://ports.ubuntu.com/ ${{ env.UBUNTU_CODENAME }}-updates main restricted
+          deb [arch=arm64] http://ports.ubuntu.com/ ${{ env.UBUNTU_CODENAME }} universe
+          deb [arch=arm64] http://ports.ubuntu.com/ ${{ env.UBUNTU_CODENAME }}-updates universe
+          deb [arch=arm64] http://ports.ubuntu.com/ ${{ env.UBUNTU_CODENAME }} multiverse
+          deb [arch=arm64] http://ports.ubuntu.com/ ${{ env.UBUNTU_CODENAME }}-updates multiverese
+          deb [arch=arm64] http://ports.ubuntu.com/ ${{ env.UBUNTU_CODENAME }}-backports main restricted multiverse universe
+          EOF
+
+      # deb [arch=arm64] http://ports.ubuntu.com/ ${{ env.UBUNTU_CODENAME }}-security main restricted multiverse universe
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y gcc-aarch64-linux-gnu:amd64 curl:amd64 libssl-dev:arm64 libxxhash-dev:arm64 libzstd-dev:arm64 liblz4-dev:arm64 
+      
+      - name: Fetch latest rsync version
+        run: |
+          version=$(curl -s "https://download.samba.org/pub/rsync/src/" | grep -o "rsync-[0-9]\+\(\.[0-9]\+\)\{0,2\}\.tar\.gz" | grep -o "[0-9]\+\(\.[0-9]\+\)\{0,2\}" | sort -V | tail -1)
+          echo "Latest rsync version: $version"
+          echo "RSYNC_VERSION=$version" >> $GITHUB_ENV
+
+      - name: Download source code
+        run: |
+          curl -sO "https://download.samba.org/pub/rsync/src/rsync-${{ env.RSYNC_VERSION }}.tar.gz"
+          tar -xzvf "rsync-${{ env.RSYNC_VERSION }}.tar.gz"
+
+      - name: Build and compile for aarch64
+        run: |
+          cd "rsync-${{ env.RSYNC_VERSION }}"
+          export CC=aarch64-linux-gnu-gcc
+          ./configure --host=aarch64-linux-gnu CFLAGS="-static" LDFLAGS="-static"
+          make
+
+      - name: Create release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: rsync-${{ env.RSYNC_VERSION }}/rsync # or just bash
+          overwrite: true
+          tag: rsync v${{ env.RSYNC_VERSION }}
+
+      # - name: Cleanup
+      #   run: |
+      #     cd ..
+      #     rm -rf "rsync-${{ env.RSYNC_VERSION }}*"
+
+      #     # sudo dpkg --add-architecture arm64
+
+
+   # - name: Print sources
+      #   run: |
+      #     cd /etc/apt/
+      #     echo "Contents of /etc/apt/sources.list"
+      #     cat sources.list
+      #     cd sources.list.d
+      #     echo "Contents of /etc/apt/sources.list.d/azure-cli.sources"
+      #     cat azure-cli.sources
+      #     echo "Contents of /etc/apt/sources.list.d/microsoft-prod.list"
+      #     cat microsoft-prod.list
